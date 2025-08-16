@@ -1,16 +1,24 @@
-# Step 1: Build the app with Maven
-FROM maven:3.9.6-eclipse-temurin-17 AS build
+# Step 1: Build stage
+FROM maven:3.9.6-eclipse-temurin-21 AS build
 WORKDIR /app
-COPY . .
+
+# Copy pom.xml and download dependencies (layer caching)
+COPY pom.xml .
+RUN mvn dependency:go-offline
+
+# Copy source code
+COPY src src
+
+# Build application
 RUN mvn clean package -DskipTests
 
-# Step 2: Run the app with JDK 17
-FROM eclipse-temurin:17-jdk
+# Step 2: Run stage
+FROM eclipse-temurin:21-jdk
 WORKDIR /app
 COPY --from=build /app/target/*.jar app.jar
 
-# Expose port (Render will override with $PORT)
+# Expose port (Render overrides with $PORT)
 EXPOSE 8080
 
-# Start the application
+# Run the app
 ENTRYPOINT ["java", "-jar", "app.jar"]
